@@ -5,9 +5,6 @@ COTSTAT .equ	0x4
 CIN	.equ 	0x8
 CINSTAT .equ	0xc
 
-Lower	.equ	0x20
-Upper	.equ	0x5f
-
 Oct	.equ	0x7
 Hex	.equ	0xf
 
@@ -72,6 +69,30 @@ Number	.equ	3800
 	st	%r27,	[r1+r3]
 	st	%r28,	[r2+r3]
 .endmacro
+
+.macro	save
+	push	%r1
+	push	%r2
+	push	%r3
+	push	%r4
+	push	%r5
+	push	%r6
+	push	%r7
+	push	%r8
+	push	%r9
+.endmacro
+
+.macro	load
+	pop	%r9
+	pop	%r8
+	pop	%r7
+	pop	%r6
+	pop	%r5
+	pop	%r4
+	pop	%r3
+	pop	%r2
+	pop	%r1
+.endmacro	
 !-----------------------------------------------
 
 
@@ -112,16 +133,73 @@ Number	.equ	3800
 !-----------------------------------------------
 
 
+!####Read	Data	Function####
+!-----------------------------------------------
+Read:	
+	clr	%r2
+	pop	%r4
+	push	%r15
+WaitInput:	
+	ldub	[%r30+CINSTAT],	%r1
+	andcc	%r1,	0x80,	%r1
+	be	WaitInput
+
+	ldub	[%r30+CIN],	%r3
+	
+	st	%r3,	[%r2+%r4]
+
+	cmp	%r3,	27
+	be	EndInput
+	
+	add	%r2,	4,	%r2
+	ba	WaitInput
+
+EndInput:
+	st	%r0,	[%r2+%r4]
+	return	2
+!-----------------------------------------------
+
+
+!####Put	Data	Function####
+!-----------------------------------------------
+Put:	
+	pop	%r4
+	clr	%r5
+	push	%r15
+
+WaitOutput:
+	ldub	[%r30+COTSTAT],	%r1
+	andcc	%r1,	0x80,	%r1
+	be	WaitOutput
+	
+	ld	[%r4+%r5],	%r3
+
+	cmp	%r3,	%r0
+	bne	NotEnd
+	mov	0xa,	%r3
+	stb	%r3,	[%r30+COUT]
+	ba	EndPut
+
+NotEnd:
+	stb	%r3,	[%r30+COUT]
+	add	%r5,	4,	%r5
+	ba	WaitOutput
+
+EndPut:
+	return 0
+!-----------------------------------------------
+
+
 !####Selection	Function####
 !-----------------------------------------------
 Select:
 	pop	%r4
 	push	%r15
 	
-	push	%r4
+	save
 	pushI	Menu
 	call	Put
-	pop	%r4
+	load
 	
 WaitSelect:
 	ldub	[%r30+CINSTAT],	%r1
@@ -136,10 +214,10 @@ WaitSelect:
 	ba	WaitSelect
 
 TypeOne:
-	add	%r4,	Array,	%r4
-	sub	%r4,	4,	%r4
+	add	%r4,	Array,	%r5
+	sub	%r5,	4,	%r5
 	pushI	Array
-	push	%r4
+	push	%r5
 	call	QuickSort
 	return	0
 
@@ -158,15 +236,13 @@ HeapSort:
 	pop	%r2
 	push	%r15
 
-	push	%r8
-	push	%r2
+	save
 
 	push	%r2
 	push	%r8
 	call	CreateHeap
 
-	pop	%r2
-	pop	%r8
+	load
 
 MakeSort:
 	cmp	%r8,	%r0
@@ -177,16 +253,14 @@ MakeSort:
 	swap	%r0,	%r7,	%r2
 	sub	%r8,	4,	%r8
 	
-	push	%r8
-	push	%r2
+	save
 
 	push	%r2
 	push	%r0
 	push	%r8
 	call	DropNode
 
-	pop	%r2
-	pop	%r8
+	load
 	
 	ba	MakeSort
 
@@ -194,6 +268,7 @@ EndSort:
 
 	return	0
 !-----------------------------------------------
+
 
 !####Create	Heap	Function####
 !-----------------------------------------------
@@ -206,18 +281,14 @@ CreateHeap:
 	sll	%r1,	2,	%r1
 
 Adjust:
-	push	%r1
-	push	%r2
-	push	%r8	
+	save
 
 	push	%r2
 	push	%r1
 	push	%r8
 	call	DropNode
 
-	pop	%r8
-	pop	%r2
-	pop	%r1
+	load
 
 	cmp	%r1,	%r0
 	be	EndCreat
@@ -279,128 +350,6 @@ EndDrop:
 !-----------------------------------------------
 
 
-!####To		Uppercase	Function####
-!-----------------------------------------------
-Uppercase:
-	pop	%r2
-	push	%r15
-UpperLoop:
-	ld	%r2,	%r3
-	cmp	%r3,	%r0
-	be	EndUpper
-	
-	cmp	%r3,	97
-	bl	SkipUpper
-	cmp	%r3,	122
-	bg	SkipUpper
-
-	and	%r3,	Upper,	%r3
-	st	%r3,	%r2
-
-SkipUpper:
-	add	%r2,	4,	%r2
-	ba	UpperLoop
-EndUpper:
-	return	0
-!-----------------------------------------------
-
-
-!####To		Lowercase	Function####
-!-----------------------------------------------
-Lowercase:
-	pop	%r2
-	push	%r15
-LowerLoop:
-	ld	%r2,	%r3
-	cmp	%r3,	%r0
-	be	EndLower
-	
-	cmp	%r3,	65
-	bl	SkipLower
-	cmp	%r3,	90
-	bg	SkipLower
-
-	or	%r3,	Lower,	%r3
-	st	%r3,	%r2
-
-SkipLower:
-	add	%r2,	4,	%r2
-	ba	LowerLoop
-EndLower:
-	return	0
-!-----------------------------------------------
-
-
-!####Get	Octal	Number	Function####
-!-----------------------------------------------
-GetOctal:
-	pop	%r2
-	pop	%r1
-	store	%r2,	%r0
-	push	%r15
-DivideOctal:
-	cmp	%r1,	%r0
-	be	EndOctal
-	
-	and	%r1,	Oct,	%r3
-	add	%r3,	48,	%r3
-	store	%r2,	%r3
-	srl	%r1,	3,	%r1
-	ba	DivideOctal
-
-EndOctal:
-	return	2
-!-----------------------------------------------
-
-!####Get	Hexadecimal	Number	Function####
-!-----------------------------------------------
-GetHex:
-	pop	%r2
-	pop	%r1
-	store	%r2,	%r0
-	push	%r15
-DivideHex:
-	cmp	%r1,	%r0
-	be	EndHex
-	
-	and	%r1,	Hex,	%r3
-
-	cmp	%r3,	10
-	bl	LessTen
-	add	%r3,	7,	%r3
-
-LessTen:
-	add	%r3,	48,	%r3
-	
-	store	%r2,	%r3
-	srl	%r1,	4,	%r1
-	ba	DivideHex
-
-EndHex:
-	return	2
-!-----------------------------------------------
-
-
-!####Get	Sum	Function####
-!-----------------------------------------------
-Sum:
-	pop	%r2
-	clr	%r4
-	push	%r15
-GetNext:
-	ld	%r2,	%r3
-	cmp	%r3,	%r0
-	be	EndSum
-
-	add	%r3,	%r4,	%r4
-	add	%r2,	4,	%r2
-	ba	GetNext
-
-EndSum:
-	return	4
-!-----------------------------------------------
-
-
 !####Quick	Sort	Function####
 !-----------------------------------------------
 QuickSort:
@@ -452,16 +401,14 @@ DoneA:
 	cmp	%r3,	%r6
 	bge	NotLeft
 
-	push	%r3
-	push	%r4
+	save
 
 	push	%r3
 	push	%r6
 
 	call	QuickSort
 	
-	pop	%r4
-	pop	%r3
+	load
 
 NotLeft:
 	cmp	%r4,	%r5
@@ -477,61 +424,126 @@ NotRight:
 !-----------------------------------------------
 
 
-!####Read	Data	Function####
+!####To		Uppercase	Function####
 !-----------------------------------------------
-!init register
-Read:	
-	clr	%r2
-	pop	%r4
+Uppercase:
+	pop	%r2
 	push	%r15
-WaitInput:	
-	ldub	[%r30+CINSTAT],	%r1
-	andcc	%r1,	0x80,	%r1
-	be	WaitInput
-
-	ldub	[%r30+CIN],	%r3
+UpperLoop:
+	ld	%r2,	%r3
+	cmp	%r3,	%r0
+	be	EndUpper
 	
-	st	%r3,	[%r2+%r4]
+	cmp	%r3,	97
+	bl	SkipUpper
+	cmp	%r3,	122
+	bg	SkipUpper
 
-	cmp	%r3,	27
-	be	EndInput
-	
+	sub	%r3,	32,	%r3
+	st	%r3,	%r2
+
+SkipUpper:
 	add	%r2,	4,	%r2
-	ba	WaitInput
+	ba	UpperLoop
+EndUpper:
+	return	0
+!-----------------------------------------------
 
-EndInput:
-	st	%r0,	[%r2+%r4]
+
+!####To		Lowercase	Function####
+!-----------------------------------------------
+Lowercase:
+	pop	%r2
+	push	%r15
+LowerLoop:
+	ld	%r2,	%r3
+	cmp	%r3,	%r0
+	be	EndLower
+	
+	cmp	%r3,	65
+	bl	SkipLower
+	cmp	%r3,	90
+	bg	SkipLower
+
+	add	%r3,	32,	%r3
+	st	%r3,	%r2
+
+SkipLower:
+	add	%r2,	4,	%r2
+	ba	LowerLoop
+EndLower:
+	return	0
+!-----------------------------------------------
+
+
+!####Get	Octal	Number	Function####
+!-----------------------------------------------
+GetOctal:
+	pop	%r2
+	pop	%r1
+	store	%r2,	%r0
+	push	%r15
+DivideOctal:
+	cmp	%r1,	%r0
+	be	EndOctal
+	
+	and	%r1,	Oct,	%r3
+	add	%r3,	48,	%r3
+	store	%r2,	%r3
+	srl	%r1,	3,	%r1
+	ba	DivideOctal
+
+EndOctal:
 	return	2
 !-----------------------------------------------
 
 
-!####Put	Data	Function####
+!####Get	Hexadecimal	Number	Function####
 !-----------------------------------------------
-Put:	
-	pop	%r4
-	clr	%r5
+GetHex:
+	pop	%r2
+	pop	%r1
+	store	%r2,	%r0
 	push	%r15
-
-WaitOutput:
-	ldub	[%r30+COTSTAT],	%r1
-	andcc	%r1,	0x80,	%r1
-	be	WaitOutput
+DivideHex:
+	cmp	%r1,	%r0
+	be	EndHex
 	
-	ld	[%r4+%r5],	%r3
+	and	%r1,	Hex,	%r3
 
+	cmp	%r3,	10
+	bl	LessTen
+	add	%r3,	7,	%r3
+
+LessTen:
+	add	%r3,	48,	%r3
+	
+	store	%r2,	%r3
+	srl	%r1,	4,	%r1
+	ba	DivideHex
+
+EndHex:
+	return	2
+!-----------------------------------------------
+
+
+!####Get	Sum	Function####
+!-----------------------------------------------
+Sum:
+	pop	%r2
+	clr	%r4
+	push	%r15
+GetNext:
+	ld	%r2,	%r3
 	cmp	%r3,	%r0
-	bne	NotEnd
-	mov	0xa,	%r3
-	stb	%r3,	[%r30+COUT]
-	ba	EndPut
+	be	EndSum
 
-NotEnd:
-	stb	%r3,	[%r30+COUT]
-	add	%r5,	4,	%r5
-	ba	WaitOutput
+	add	%r3,	%r4,	%r4
+	add	%r2,	4,	%r2
+	ba	GetNext
 
-EndPut:
-	return 0
+EndSum:
+	return	4
 !-----------------------------------------------
 
 
