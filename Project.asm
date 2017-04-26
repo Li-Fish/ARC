@@ -12,6 +12,8 @@ Selct	.equ	3980
 Array	.equ	4000
 Menu	.equ	2048
 Number	.equ	3800
+InforH	.equ	3500
+InforQ	.equ	3600
 
 	.org	10000
 !####Macro	Program####
@@ -221,6 +223,12 @@ WaitSelect:
 	ba	WaitSelect
 
 TypeOne:
+	save
+	pushI	InforQ
+	call	Put
+	load	
+
+
 	add	%r4,	Array,	%r5
 	sub	%r5,	4,	%r5
 	pushI	Array
@@ -229,6 +237,11 @@ TypeOne:
 	return	0
 
 TypeTwo:
+	save
+	pushI	InforH
+	call	Put
+	load
+
 	pushI	Array
 	push	%r4
 	call	HeapSort
@@ -574,4 +587,25 @@ EndSum:
 	0x74
 	0x00
 !-----------------------------------------------
+
+
+	.org	3500
+!####Information	Heapsort####
+!-----------------------------------------------
+	0x48,0x65,0x61,0x70
+	0x20,0x73,0x6f,0x72
+	0x74,0x69,0x6e,0x67
+	0x00
+!-----------------------------------------------
+
+	.org	3600
+!####Information	Quicksort####
+!-----------------------------------------------
+	0x51,0x75,0x69,0x63
+	0x6b,0x20,0x73,0x6f
+	0x72,0x74,0x69,0x6e
+	0x67
+	0x00
+!-----------------------------------------------
+
 	.end
