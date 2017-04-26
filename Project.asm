@@ -12,8 +12,14 @@ Selct	.equ	3980
 Array	.equ	4000
 Menu	.equ	2048
 Number	.equ	3800
-InforH	.equ	3500
-InforQ	.equ	3600
+InfoH	.equ	2500
+InfoQ	.equ	2600
+Soted	.equ	2700
+Upper	.equ	2800
+Lower	.equ	2900
+InfoOct	.equ	3000
+InfoHex	.equ	3100
+Greet	.equ	3200
 
 	.org	10000
 !####Macro	Program####
@@ -102,34 +108,44 @@ InforQ	.equ	3600
 !####Main	Function####
 !-----------------------------------------------
 	init
-	pushI	Array
+	
+	pushI	Greet
+	call	Put
+
+	pushI	Array			!Read data
 	call	Read
 
 	call	Select
 	
+	pushI	Soted			!Sort and select
+	call	Put
 	pushI	Array
 	call	Put
 
-	pushI	Array
+	pushI	Array			!To uppercase
 	call	Uppercase
-
+	
+	pushI	Upper
+	call	Put
 	pushI	Array
 	call	Put
-
-	pushI	Array
+	
+	pushI	Array			!Get summary
 	call	Sum
 	pop	%r1
 	push	%r1
 	push	%r1
 	
-	pushI	Number
+	pushI	Number			!Translate a number to Octal
 	call	GetOctal
-
+	pushI	InfoOct
+	call	Put
 	call	Put
 
-	pushI	Number
+	pushI	Number			!Translate a number to Hexadecimal
 	call	GetHex
-	
+	pushI	InfoHex
+	call	Put
 	call	Put
 
 	halt
@@ -151,11 +167,11 @@ WaitInput:
 	
 	st	%r3,	[%r2+%r4]
 
-	cmp	%r3,	27
+	cmp	%r3,	27		!If this character is ESC, end input
 	be	EndInput
 
 PutChar:
-	ldub	[%r30+COTSTAT],	%r1
+	ldub	[%r30+COTSTAT],	%r1	!if read a character then print to the screen
 	andcc	%r1,	0x80,	%r1
 	be	PutChar
 	stb	%r3,	[%r30+COUT]
@@ -164,7 +180,7 @@ PutChar:
 	ba	WaitInput
 
 EndInput:
-	st	%r0,	[%r2+%r4]
+	st	%r0,	[%r2+%r4]	!Change the last character to '\0'
 	return	2
 !-----------------------------------------------
 
@@ -183,9 +199,9 @@ WaitOutput:
 	
 	ld	[%r4+%r5],	%r3
 
-	cmp	%r3,	%r0
+	cmp	%r3,	%r0		!If the character not is '\0', mean the string is not end
 	bne	NotEnd
-	mov	0xa,	%r3
+	mov	0xa,	%r3		!When the character is '\0', then print '\n' to the screen
 	stb	%r3,	[%r30+COUT]
 	ba	EndPut
 
@@ -205,7 +221,7 @@ Select:
 	pop	%r4
 	push	%r15
 	
-	save
+	save				!Print menu to screen
 	pushI	Menu
 	call	Put
 	load
@@ -224,7 +240,7 @@ WaitSelect:
 
 TypeOne:
 	save
-	pushI	InforQ
+	pushI	InfoQ
 	call	Put
 	load	
 
@@ -238,7 +254,7 @@ TypeOne:
 
 TypeTwo:
 	save
-	pushI	InforH
+	pushI	InfoH
 	call	Put
 	load
 
@@ -260,25 +276,25 @@ HeapSort:
 
 	push	%r2
 	push	%r8
-	call	CreateHeap
+	call	CreateHeap		!To make a heap
 
 	load
 
 MakeSort:
 	cmp	%r8,	%r0
-	be	EndSort
+	be	EndSort			!When the heap is empty, end the loop
 
 	sub	%r8,	4,	%r7
 	
-	swap	%r0,	%r7,	%r2
-	sub	%r8,	4,	%r8
+	swap	%r0,	%r7,	%r2	!Delete the root node and move last node to the root node
+	sub	%r8,	4,	%r8	!Reduce the size of heap by four
 	
 	save
 
 	push	%r2
 	push	%r0
 	push	%r8
-	call	DropNode
+	call	DropNode		!To adjust the new root node
 
 	load
 	
@@ -426,7 +442,7 @@ DoneA:
 	push	%r3
 	push	%r6
 
-	call	QuickSort
+	call	QuickSort		!To sort the left
 	
 	load
 
@@ -437,7 +453,7 @@ NotLeft:
 	push	%r5
 	push	%r4
 	
-	call	QuickSort
+	call	QuickSort		!To sort the right
 
 NotRight:
 	return	0
@@ -529,11 +545,11 @@ DivideHex:
 	cmp	%r1,	%r0
 	be	EndHex
 	
-	and	%r1,	Hex,	%r3
+	and	%r1,	Hex,	%r3	!Get the last four bits
 
 	cmp	%r3,	10
 	bl	LessTen
-	add	%r3,	7,	%r3
+	add	%r3,	7,	%r3	!Translate to character
 
 LessTen:
 	add	%r3,	48,	%r3
@@ -589,7 +605,7 @@ EndSum:
 !-----------------------------------------------
 
 
-	.org	3500
+	.org	2500
 !####Information	Heapsort####
 !-----------------------------------------------
 	0x48,0x65,0x61,0x70
@@ -598,13 +614,69 @@ EndSum:
 	0x00
 !-----------------------------------------------
 
-	.org	3600
+	.org	2600
 !####Information	Quicksort####
 !-----------------------------------------------
 	0x51,0x75,0x69,0x63
 	0x6b,0x20,0x73,0x6f
 	0x72,0x74,0x69,0x6e
 	0x67
+	0x00
+!-----------------------------------------------
+
+	.org	2700
+!####Information	Soted####
+!-----------------------------------------------
+	0x53,0x6f,0x72,0x74
+	0x65,0x64,0x3a
+	0x00
+!-----------------------------------------------
+
+	.org	2800
+!####Information	Uppercase####
+!-----------------------------------------------
+	0x55,0x70,0x70,0x65
+	0x72,0x63,0x61,0x73
+	0x65,0x3a
+	0x00
+!-----------------------------------------------
+
+	.org	2900
+!####Information	Lowercase####
+!-----------------------------------------------
+	0x4c,0x6f,0x77,0x65
+	0x72,0x63,0x61,0x73
+	0x65,0x3a
+	0x00
+!-----------------------------------------------
+
+
+	.org	3000
+!####Information	Oct####
+!-----------------------------------------------
+	0x4f,0x63,0x74,0x61
+	0x6c,0x3a
+	0x00
+!-----------------------------------------------
+
+	.org	3100
+!####Information	Hex####
+!-----------------------------------------------
+	0x48,0x65,0x78,0x61
+	0x64,0x65,0x63,0x69
+	0x6d,0x61,0x6c,0x3a
+	0x00
+!-----------------------------------------------
+
+	.org	3200
+!####Information	greet####
+!-----------------------------------------------
+	0x50,0x6c,0x65,0x61
+	0x73,0x65,0x20,0x65
+	0x6e,0x74,0x65,0x72
+	0x20,0x61,0x20,0x73
+	0x74,0x72,0x69,0x6e
+	0x67,0x3a
 	0x00
 !-----------------------------------------------
 
