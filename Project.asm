@@ -40,6 +40,7 @@ Number	.equ	3800
 .macro	init
 	clr	%r30
 	sethi	0x3fffc0,	%r30
+	sethi	0x200000,	%r14
 .endmacro
 
 .macro	return X
